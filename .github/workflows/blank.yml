@@ -38,11 +38,11 @@ jobs:
       modified_yamls: ${{ steps.changed-files.outputs.modified_files }}
       
   build:
-   needs: check
-   runs-on: ubuntu-latest
-   strategy:
-    matrix:
-      file: ${{ needs.check.outputs.modified_yamls }}
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        file: ${{ needs.check.outputs.modified_yamls }}
 
     steps:
       - name: Run step if any of the listed files above change
@@ -55,5 +55,5 @@ jobs:
           git clone $REPOSITORY ./$PROJECT_NAME
           docker build . --build-arg PROJECT_PATH=./$PROJECT_NAME
           docker push $TAG
-            
+          
             
