@@ -1,0 +1,48 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+jobs:
+ 
+  build:
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get specific changed files
+        id: changed-files-specific
+        uses: tj-actions/changed-files@v32
+        with:
+          files: |
+            *.yaml
+          files_ignore: |
+            *.yml
+      
+      - name: Run step if any of the listed files above change
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        run: |
+          for file in ${{ steps.changed-files.outputs.changed_files }}; do
+            echo PROJECT_NAME=$(yq .project.name $file)
+            echo VERSION=$(yq .project.version $file)
+            echo REPOSITORY=$(yq .project.repository $file)
+            echo TAG=ghcr.io/qraft-technologies/$PROJECT_NAME:$VERSION
+            
+            git clone $REPOSITORY $PROJECT_NAME
+            docker build . --build-arg PROJECT_PATH=$PROJECT_NAME
+            docker push
+            
+          done
