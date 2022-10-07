@@ -3,4 +3,4 @@ project:
   version: 1.0.0
   repository: https://github.com/kimjunil/project-1.git
   stage: development
-  launchplan: single_launch_pla
+  launchplan: single_launch_plan
