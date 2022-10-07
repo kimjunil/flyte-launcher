@@ -36,7 +36,7 @@ jobs:
       - name: outputs
         run: |
           echo '::set-output name=modified_yamls::[${{ steps.changed-files.outputs.modified_files }}]'
-          echo '::set-output name=is_modified::${{ steps.changed-files.outputs.any_changed }}''
+          echo '::set-output name=is_modified::${{ steps.changed-files.outputs.any_changed }}'
       
   build:
     needs: check
