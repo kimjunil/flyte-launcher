@@ -32,10 +32,11 @@ jobs:
             *.yaml
           files_ignore: |
             *.yml
-
-    outputs:
-      is_modified: ${{ steps.changed-files.outputs.any_changed }}
-      modified_yamls: ["${{ steps.changed-files.outputs.modified_files }}"]
+      
+      - name: outputs
+        run: |
+          echo '::set-output modified_yamls=value::[${{ steps.changed-files.outputs.modified_files }}]'
+          echo '::set-output is_modified=value::${{ steps.changed-files.outputs.any_changed }}''
       
   build:
     needs: check
