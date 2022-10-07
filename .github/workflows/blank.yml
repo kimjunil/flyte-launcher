@@ -37,10 +37,10 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
           for file in ${{ steps.changed-files.outputs.modified_files }}; do
-            echo PROJECT_NAME=$(yq .project.name $file)
-            echo VERSION=$(yq .project.version $file)
-            echo REPOSITORY=$(yq .project.repository $file)
-            echo TAG=ghcr.io/qraft-technologies/$PROJECT_NAME:$VERSION
+            PROJECT_NAME=$(yq .project.name $file)
+            VERSION=$(yq .project.version $file)
+            REPOSITORY=$(yq .project.repository $file)
+            TAG=ghcr.io/qraft-technologies/$PROJECT_NAME:$VERSION
             
             git clone $REPOSITORY $PROJECT_NAME
             docker build . --build-arg PROJECT_PATH=$PROJECT_NAME
