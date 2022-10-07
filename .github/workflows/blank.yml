@@ -42,8 +42,9 @@ jobs:
             REPOSITORY=$(yq .project.repository $file)
             TAG=ghcr.io/qraft-technologies/$PROJECT_NAME:$VERSION
             
-            git clone $REPOSITORY $PROJECT_NAME
-            docker build . --build-arg PROJECT_PATH=$PROJECT_NAME
+            git clone $REPOSITORY ./$PROJECT_NAME
+            ls
+            docker build . --build-arg PROJECT_PATH=./$PROJECT_NAME
             docker push
             
           done
