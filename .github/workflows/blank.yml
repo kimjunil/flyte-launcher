@@ -45,6 +45,6 @@ jobs:
             git clone $REPOSITORY ./$PROJECT_NAME
             ls
             docker build . --build-arg PROJECT_PATH=./$PROJECT_NAME
-            docker push
+            docker push $TAG
             
           done
