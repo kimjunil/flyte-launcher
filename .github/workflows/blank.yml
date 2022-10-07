@@ -47,9 +47,9 @@ jobs:
     steps:
       - name: Run step if any of the listed files above change
         run: |
-          PROJECT_NAME=$(yq .project.name ${{ martix.file }})
-          VERSION=$(yq .project.version ${{ martix.file }})
-          REPOSITORY=$(yq .project.repository ${{ martix.file }})
+          PROJECT_NAME=$(yq .project.name ${{ matrix.file }})
+          VERSION=$(yq .project.version ${{ matrix.file }})
+          REPOSITORY=$(yq .project.repository ${{ matrix.file }})
           TAG=ghcr.io/qraft-technologies/$PROJECT_NAME:$VERSION
           
           git clone $REPOSITORY ./$PROJECT_NAME
