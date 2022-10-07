@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 jobs:
  
-  build:
+  check:
     runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
@@ -32,19 +32,28 @@ jobs:
             *.yaml
           files_ignore: |
             *.yml
+
+    outputs:
+      is_modified: ${{ steps.changed-files.outputs.any_changed }}
+      modified_yamls: ${{ steps.changed-files.outputs.modified_files }}
       
+  build:
+   needs: check
+   runs-on: ubuntu-latest
+   strategy:
+    matrix:
+      file: ${{ needs.check.outputs.modified_yamls }}
+
+    steps:
       - name: Run step if any of the listed files above change
-        if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          for file in ${{ steps.changed-files.outputs.modified_files }}; do
-            PROJECT_NAME=$(yq .project.name $file)
-            VERSION=$(yq .project.version $file)
-            REPOSITORY=$(yq .project.repository $file)
-            TAG=ghcr.io/qraft-technologies/$PROJECT_NAME:$VERSION
+          PROJECT_NAME=$(yq .project.name ${{ martix.file }})
+          VERSION=$(yq .project.version ${{ martix.file }})
+          REPOSITORY=$(yq .project.repository ${{ martix.file }})
+          TAG=ghcr.io/qraft-technologies/$PROJECT_NAME:$VERSION
+          
+          git clone $REPOSITORY ./$PROJECT_NAME
+          docker build . --build-arg PROJECT_PATH=./$PROJECT_NAME
+          docker push $TAG
             
-            git clone $REPOSITORY ./$PROJECT_NAME
-            ls
-            docker build . --build-arg PROJECT_PATH=./$PROJECT_NAME
-            docker push $TAG
             
-          done
