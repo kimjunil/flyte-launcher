@@ -67,7 +67,7 @@ jobs:
       version: ${{ env.VERSION }}
 
   push-to-flyte:
-    needs: docker-build-and-push
+    needs: build
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.build.outputs.image_tag }}
