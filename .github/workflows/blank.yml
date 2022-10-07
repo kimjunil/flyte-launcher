@@ -39,7 +39,7 @@ jobs:
       
   build:
     needs: check
-    if: steps.check.outputs.is_modified == 'true'
+    if: needs.check.outputs.is_modified == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
