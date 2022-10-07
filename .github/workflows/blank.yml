@@ -56,5 +56,72 @@ jobs:
           git clone $REPOSITORY ./$PROJECT_NAME
           docker build . --build-arg PROJECT_PATH=./$PROJECT_NAME
           docker push $TAG
-          
+
+          echo "YAML_FILLE=${{ matrix.file }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+    
+    outputs:
+      file: ${{ env.YAML_FILLE }}
+      image_tag: ${{ env.IMAGE_TAG }}
+      version: ${{ env.VERSION }}
+
+  push-to-flyte:
+    needs: docker-build-and-push
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.build.outputs.image_tag }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    defaults:
+      run:
+        working-directory: /root
             
+    steps:
+      - name: Install tools
+        run: |
+          curl -sL https://ctl.flyte.org/install | bash
+          mv bin/flytectl /usr/bin/
+          apt-get update
+          apt-get install wget jq -y
+          wget https://github.com/mikefarah/yq/releases/download/v4.27.2/yq_linux_amd64 --output-document yq
+          chmod +x ./yq
+          pip install tomlq
+
+      - name: Setup environment variables.
+        run: |
+          pip install yq==3.1.0
+
+          echo "PROJECT_NAME=$(yq .project.name ${{ needs.check.outputs.file }})" >> $GITHUB_ENV
+          echo "VERSION=$(yq .project.version ${{ needs.check.outputs.file }})" >> $GITHUB_ENV
+          echo "FLYTE_DOMAIN=$(yq .project.stage ${{ needs.check.outputs.file }})" >> $GITHUB_ENV
+          echo "LAUNCH_PLAN=$(yq .project.launchplan ${{ needs.check.outputs.file }})" >> $GITHUB_ENV
+          echo "TAG=ghcr.io/qraft-technologies/$PROJECT_NAME:$VERSION" >> $GITHUB_ENV
+
+      - name: Setup flyte_config.yaml
+        run: |
+          echo '${{ secrets.FLYTE_CLIENT_SECRET }}' >> /tmp/flyte_admin_secret
+          echo '
+            admin:
+              endpoint: ${{ secrets.FLYTE_ENDPOINT }}
+              authType: ClientSecret
+              clientId: ${{ secrets.FLYTE_CLIENT_ID }}
+              clientSecretLocation: /tmp/flyte_admin_secret
+          ' > ~/.flyte/config.yaml
+
+      - name: Serialize project
+        run: |
+          mkdir _pb_output
+          echo pyflyte --pkgs ${{ env.PROJECT_NAME }} serialize --local-source-root . --image ${{ env.IMAGE_TAG }} workflows -f _pb_output/
+          pyflyte --pkgs ${{ env.PROJECT_NAME }} serialize --local-source-root . --image ${{ env.IMAGE_TAG }} workflows -f _pb_output/
+ 
+      - name: Create project
+        run: |
+          flytectl create project --name ${{ env.FLYTE_PROJECT }} --id ${{ env.FLYTE_PROJECT }}
+         
+      - name: Register serialized project
+        run: |
+          flytectl register files _pb_output/* -p ${{ env.FLYTE_PROJECT }} -d ${{ env.FLYTE_DOMAIN }} --version ${{ env.VERSION }}
+          flytectl get launchplan $LAUNCH_PLAN -p ${{ env.FLYTE_PROJECT }} -d ${{ env.FLYTE_DOMAIN }} --version ${{ env.VERSION }} --execFile ${LAUNCH_PLAN}_spec.yaml
+          flytectl create execution -p ${{ env.FLYTE_PROJECT }} -d ${{ env.FLYTE_DOMAIN }} --version ${{ env.VERSION }} --execFile ${LAUNCH_PLAN}_spec.yaml
